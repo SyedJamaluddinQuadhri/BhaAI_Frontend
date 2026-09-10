@@ -114,4 +114,19 @@ export const integrationsService = {
     saveStored(updated);
     return updatedItem;
   },
+
+  setConnected(id: string, connected: boolean, lastSync?: string): void {
+    const current = getStored();
+    const updated = current.map((item) => {
+      if (item.id === id) {
+        return {
+          ...item,
+          connected,
+          lastSync: lastSync || (connected ? "Just now" : "Disconnected"),
+        };
+      }
+      return item;
+    });
+    saveStored(updated);
+  },
 };

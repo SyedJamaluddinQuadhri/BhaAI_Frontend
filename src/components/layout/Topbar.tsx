@@ -1,7 +1,10 @@
-import { Sun, Moon, Bell, Command } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Sun, Moon, Bell, Command, LogOut, User } from "lucide-react";
 import { IconButton } from "../ui/IconButton";
 import { useTheme } from "../../hooks/useTheme";
 import { BhaAIIcon } from "../shared/BhaAIIcon";
+import { authService } from "../../services/auth/auth.service";
 
 interface TopbarProps {
   onAssistant?: () => void;
@@ -14,11 +17,23 @@ export function Topbar({
   onOpenCommandPalette,
   onOpenNotifications,
 }: TopbarProps) {
+  const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  const session = authService.getSession();
+  const userName = session?.user?.name || "User";
+  const userEmail = session?.user?.email || "user@bhaai.local";
+  const userInitial = userName.charAt(0).toUpperCase();
 
   const handleSearchClick = () => {
     if (onOpenCommandPalette) onOpenCommandPalette();
     else if (onAssistant) onAssistant();
+  };
+
+  const handleLogout = async () => {
+    await authService.logout();
+    navigate("/login");
   };
 
   return (
@@ -58,9 +73,55 @@ export function Topbar({
             </span>
           </div>
 
-          {/* User Profile Avatar */}
-          <div className="ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-[var(--text)] to-[var(--muted)] text-xs font-bold text-[var(--bg)] shadow-sm">
-            J
+          {/* User Profile Avatar with Dropdown */}
+          <div className="relative ml-1">
+            <button
+              onClick={() => setProfileOpen((v) => !v)}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-[var(--text)] to-[var(--muted)] text-xs font-bold text-[var(--bg)] shadow-sm hover:ring-2 hover:ring-[var(--accent)] transition"
+              title={`Account: ${userName}`}
+            >
+              {session?.user?.picture ? (
+                <img
+                  src={session.user.picture}
+                  alt={userName}
+                  className="h-full w-full rounded-full object-cover"
+                />
+              ) : (
+                userInitial
+              )}
+            </button>
+
+            {profileOpen && (
+              <div className="absolute right-0 top-full mt-2 w-56 rounded-[18px] border border-[var(--line)] bg-[var(--surface)] p-2 shadow-2xl z-50 text-xs">
+                <div className="border-b border-[var(--line)] p-2.5">
+                  <div className="font-semibold text-sm text-[var(--text)] truncate">
+                    {userName}
+                  </div>
+                  <div className="text-[11px] muted truncate">{userEmail}</div>
+                </div>
+
+                <div className="pt-1">
+                  <button
+                    onClick={() => {
+                      setProfileOpen(false);
+                      navigate("/settings");
+                    }}
+                    className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-[var(--text)] hover:bg-[var(--surface-2)] transition"
+                  >
+                    <User size={14} />
+                    <span>Workspace Settings</span>
+                  </button>
+
+                  <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-[var(--danger)] hover:bg-[var(--danger-soft)] transition"
+                  >
+                    <LogOut size={14} />
+                    <span>Sign out</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

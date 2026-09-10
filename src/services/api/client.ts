@@ -36,10 +36,13 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  // Set default X-User-Id for multi-tenant FAISS vector index isolation
-  if (!headers.has("X-User-Id")) {
-    const userId = localStorage.getItem("bhaai_user_id") || "user_bhaai_dev";
-    headers.set("X-User-Id", userId);
+  // In production, backend derives identity from Authorization Google ID token.
+  // We attach X-User-Id from authenticated session, or fallback for local development.
+  const sessionUserId = localStorage.getItem("bhaai_user_id");
+  if (sessionUserId && !headers.has("X-User-Id")) {
+    headers.set("X-User-Id", sessionUserId);
+  } else if (import.meta.env.DEV && !headers.has("X-User-Id")) {
+    headers.set("X-User-Id", "user_bhaai_dev");
   }
 
   // Ensure clean path join with single slash

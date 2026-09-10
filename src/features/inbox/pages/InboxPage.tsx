@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -13,16 +13,17 @@ import {
   CheckSquare,
   Sparkles,
   Check,
-  ExternalLink,
+  Inbox,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { emailService } from "../../../services/email/email.service";
+import { emailService, type GmailStatus } from "../../../services/email/email.service";
 import { authService } from "../../../services/auth/auth.service";
 import { calendarService } from "../../../services/calendar/calendar.service";
 import { PageContainer } from "../../../components/layout/PageContainer";
 import { Section } from "../../../components/shared/Section";
 import { Badge } from "../../../components/ui/Badge";
 import { Button } from "../../../components/ui/Button";
+import { GmailConsentModal } from "../../../components/shared/GmailConsentModal";
 import type { Email } from "../../../types/common";
 
 const categoryIcons: Record<string, typeof Clock3> = {
@@ -34,13 +35,21 @@ const categoryIcons: Record<string, typeof Clock3> = {
 
 export function InboxPage() {
   const navigate = useNavigate();
+  const [gmailStatus, setGmailStatus] = useState<GmailStatus>({ connected: false });
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [showConsentModal, setShowConsentModal] = useState(false);
+
+  useEffect(() => {
+    emailService.getGmailStatus().then(setGmailStatus);
+  }, []);
+
   const { data = [], refetch, isFetching } = useQuery({
     queryKey: ["emails"],
     queryFn: emailService.list,
   });
 
   const session = authService.getSession();
-  const gmailAddress = session?.user?.gmailAddress || "jamal.ahmed@gmail.com";
+  const gmailAddress = gmailStatus.email || session?.user?.email || "Connected Gmail Account";
 
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -48,6 +57,21 @@ export function InboxPage() {
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await emailService.syncGmail();
+      await refetch();
+      const updatedStatus = await emailService.getGmailStatus();
+      setGmailStatus(updatedStatus);
+      showToast(`Synced! ${res.synced_count} emails indexed.`);
+    } catch {
+      showToast("Sync completed.");
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleAddToCalendar = async (email: Email) => {
@@ -65,7 +89,6 @@ export function InboxPage() {
   };
 
   const handleCreateTask = (email: Email) => {
-    // Add to task list in localStorage
     const STORAGE_KEY = "bhaai_tasks_custom";
     const raw = localStorage.getItem(STORAGE_KEY);
     const tasks = raw ? JSON.parse(raw) : [];
@@ -83,6 +106,10 @@ export function InboxPage() {
     setSelectedEmail(null);
   };
 
+  const deadlineCount = data.filter((e) => e.category === "Deadline").length;
+  const billCount = data.filter((e) => e.category === "Bill").length;
+  const actionCount = data.filter((e) => Boolean(e.action)).length;
+
   return (
     <PageContainer>
       {/* Header section */}
@@ -95,38 +122,67 @@ export function InboxPage() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold">Gmail Gateway Synced</span>
-                <span className="h-2 w-2 rounded-full bg-[var(--success)]" />
+                <span className="text-sm font-semibold">
+                  {gmailStatus.connected ? "Gmail Connected" : "Gmail Not Connected"}
+                </span>
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    gmailStatus.connected ? "bg-[var(--success)]" : "bg-[var(--muted)]"
+                  }`}
+                />
               </div>
-              <div className="text-xs muted">{gmailAddress} · OAuth 2.0 Read-only</div>
+              <div className="text-xs muted">
+                {gmailStatus.connected ? `${gmailAddress} · OAuth 2.0 Read-only` : "Authorize read-only access to index emails"}
+              </div>
             </div>
           </div>
 
-          <button
-            onClick={() => {
-              refetch();
-              showToast("Gmail inbox refreshed!");
-            }}
-            disabled={isFetching}
-            className="flex items-center gap-1.5 rounded-[10px] border border-[var(--line)] bg-[var(--surface-2)] px-3 py-1.5 text-xs font-medium text-[var(--text)] hover:opacity-80 transition"
-          >
-            <RefreshCw size={13} className={isFetching ? "animate-spin" : ""} />
-            {isFetching ? "Syncing…" : "Sync Gmail"}
-          </button>
+          {gmailStatus.connected ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleSync}
+                disabled={isSyncing || isFetching}
+                className="flex items-center gap-1.5 rounded-[10px] border border-[var(--line)] bg-[var(--surface-2)] px-3 py-1.5 text-xs font-medium text-[var(--text)] hover:opacity-80 transition"
+              >
+                <RefreshCw size={13} className={isSyncing || isFetching ? "animate-spin" : ""} />
+                {isSyncing || isFetching ? "Syncing…" : "Sync Gmail"}
+              </button>
+              <button
+                onClick={async () => {
+                  await emailService.disconnectGmail();
+                  setGmailStatus({ connected: false });
+                  showToast("Gmail disconnected.");
+                  refetch();
+                }}
+                className="rounded-[10px] border border-[var(--line)] px-2.5 py-1.5 text-xs text-[var(--muted)] hover:text-[var(--danger)] transition"
+                title="Disconnect Gmail"
+              >
+                Disconnect
+              </button>
+            </div>
+          ) : (
+            <Button
+              variant="primary"
+              className="text-xs"
+              onClick={() => setShowConsentModal(true)}
+            >
+              Connect Gmail
+            </Button>
+          )}
         </div>
 
-        {/* Metric summaries */}
+        {/* Dynamic Metric summaries */}
         <div className="grid gap-5 border-y border-[var(--line)] py-7 sm:grid-cols-3">
           <div>
-            <div className="text-3xl font-semibold">3</div>
+            <div className="text-3xl font-semibold">{deadlineCount}</div>
             <div className="text-sm muted">deadlines detected</div>
           </div>
           <div>
-            <div className="text-3xl font-semibold">2</div>
+            <div className="text-3xl font-semibold">{billCount}</div>
             <div className="text-sm muted">bills detected</div>
           </div>
           <div>
-            <div className="text-3xl font-semibold">4</div>
+            <div className="text-3xl font-semibold">{actionCount}</div>
             <div className="text-sm muted">actions detected</div>
           </div>
         </div>
@@ -134,45 +190,66 @@ export function InboxPage() {
 
       {/* Email Feed */}
       <div>
-        {data.map((e) => {
-          const CategoryIcon = categoryIcons[e.category] ?? Mail;
-          return (
-            <motion.div
-              key={e.id}
-              whileHover={{ x: 2 }}
-              onClick={() => setSelectedEmail(e)}
-              className="group grid gap-4 border-b border-[var(--line)] py-6 md:grid-cols-[1fr_170px_auto] cursor-pointer hover:bg-[var(--surface-2)]/30 px-3 rounded-[16px] transition"
-            >
-              <div>
-                <div className="flex items-center gap-3">
-                  <Mail size={17} className="muted" />
-                  <span className="font-semibold">{e.sender}</span>
-                  <Badge tone={e.category === "Deadline" ? "danger" : "neutral"}>
-                    <span className="flex items-center gap-1">
-                      <CategoryIcon size={12} />
-                      {e.category}
-                    </span>
-                  </Badge>
-                </div>
-                <h3 className="mt-3 text-lg font-semibold group-hover:text-[var(--accent)] transition">
-                  {e.subject}
-                </h3>
-                <p className="mt-1 text-sm leading-6 muted">{e.summary}</p>
-                {e.action && (
-                  <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-[8px] bg-[var(--surface-2)] px-2.5 py-1 text-xs font-medium text-[var(--accent)]">
-                    <span>Action:</span>
-                    <span className="text-[var(--text)]">{e.action}</span>
+        {data.length === 0 ? (
+          <div className="py-16 text-center text-xs text-[var(--muted)]">
+            <Inbox size={32} className="mx-auto text-[var(--muted)] opacity-50 mb-3" />
+            <div className="font-semibold text-base text-[var(--text)]">No emails indexed yet</div>
+            <p className="mt-1 text-xs max-w-sm mx-auto">
+              {gmailStatus.connected
+                ? "Click 'Sync Gmail' to ingest and vectorize messages into your Email FAISS index."
+                : "Connect your Gmail account to enable read-only intelligence and action extraction."}
+            </p>
+            {!gmailStatus.connected && (
+              <Button
+                variant="primary"
+                className="mt-4 text-xs"
+                onClick={() => setShowConsentModal(true)}
+              >
+                Connect Gmail
+              </Button>
+            )}
+          </div>
+        ) : (
+          data.map((e) => {
+            const CategoryIcon = categoryIcons[e.category] ?? Mail;
+            return (
+              <motion.div
+                key={e.id}
+                whileHover={{ x: 2 }}
+                onClick={() => setSelectedEmail(e)}
+                className="group grid gap-4 border-b border-[var(--line)] py-6 md:grid-cols-[1fr_170px_auto] cursor-pointer hover:bg-[var(--surface-2)]/30 px-3 rounded-[16px] transition"
+              >
+                <div>
+                  <div className="flex items-center gap-3">
+                    <Mail size={17} className="muted" />
+                    <span className="font-semibold">{e.sender}</span>
+                    <Badge tone={e.category === "Deadline" ? "danger" : "neutral"}>
+                      <span className="flex items-center gap-1">
+                        <CategoryIcon size={12} />
+                        {e.category}
+                      </span>
+                    </Badge>
                   </div>
-                )}
-              </div>
-              <div className="text-xs muted md:text-right">{e.date}</div>
-              <ArrowUpRight
-                size={17}
-                className="opacity-30 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition"
-              />
-            </motion.div>
-          );
-        })}
+                  <h3 className="mt-3 text-lg font-semibold group-hover:text-[var(--accent)] transition">
+                    {e.subject}
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 muted">{e.summary}</p>
+                  {e.action && (
+                    <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-[8px] bg-[var(--surface-2)] px-2.5 py-1 text-xs font-medium text-[var(--accent)]">
+                      <span>Action:</span>
+                      <span className="text-[var(--text)]">{e.action}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="text-xs muted md:text-right">{e.date}</div>
+                <ArrowUpRight
+                  size={17}
+                  className="opacity-30 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition"
+                />
+              </motion.div>
+            );
+          })
+        )}
       </div>
 
       {/* Email Context Inspector Modal */}
@@ -281,6 +358,20 @@ export function InboxPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Gmail Consent Modal */}
+      <GmailConsentModal
+        isOpen={showConsentModal}
+        onClose={() => setShowConsentModal(false)}
+        userEmail={gmailAddress}
+        onAuthorizeSuccess={() => {
+          emailService.getGmailStatus().then((s) => {
+            setGmailStatus(s);
+            showToast("Gmail connected successfully! (Read-only)");
+            refetch();
+          });
+        }}
+      />
     </PageContainer>
   );
 }
