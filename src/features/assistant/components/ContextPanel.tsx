@@ -1,0 +1,4 @@
+import { FileText, Clock3, Mail } from "lucide-react";
+export function ContextPanel() {
+  return <aside className="space-y-5"><div><div className="eyebrow mb-3">Context</div><h3 className="text-xl font-semibold tracking-tight">What BhaAI knows for this conversation</h3></div><div className="space-y-3">{[[FileText,"LIC Insurance Policy","Expires 03 Oct 2026"],[Clock3,"Internship application","Due 14 Sep 2026"],[Mail,"Campus Placement Office","1 action required"]].map(([Icon,title,detail])=>{const I=Icon as typeof FileText; return <div key={title as string} className="flex gap-3 border-b border-[var(--line)] pb-3"><I size={17} className="mt-0.5"/><div><div className="text-sm font-semibold">{title as string}</div><div className="text-xs muted">{detail as string}</div></div></div>})}</div></aside>;
+}

@@ -1,0 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
+import { calendarService } from "../../../services/calendar/calendar.service";
+import { PageContainer } from "../../../components/layout/PageContainer";
+import { Section } from "../../../components/shared/Section";
+import { Badge } from "../../../components/ui/Badge";
+export function CalendarPage(){const {data=[]}=useQuery({queryKey:["calendar"],queryFn:calendarService.list});return <PageContainer><Section eyebrow="Calendar" title="Time, understood."><p className="max-w-2xl text-lg muted">Events, deadlines, tasks and reminders share one view.</p></Section><div className="grid gap-0 border-y border-[var(--line)] md:grid-cols-2">{data.map(e=><div key={e.id} className="border-b border-[var(--line)] p-6 md:nth-[odd]:border-r"><div className="flex items-center justify-between"><span className="eyebrow">{e.start} {e.end!==e.start&&`— ${e.end}`}</span><Badge tone={e.type==="deadline"?"warning":e.type==="task"?"accent":"neutral"}>{e.type}</Badge></div><h3 className="mt-4 text-xl font-semibold">{e.title}</h3></div>)}</div><div className="mt-10 border-t border-[var(--line)] pt-7"><div className="eyebrow">BhaAI suggestion</div><p className="mt-2 max-w-xl text-lg">You have a free 90-minute window tomorrow at 6 PM.</p></div></PageContainer>;}

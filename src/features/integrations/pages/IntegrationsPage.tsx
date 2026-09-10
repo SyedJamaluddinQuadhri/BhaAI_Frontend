@@ -1,0 +1,8 @@
+import { useQuery } from "@tanstack/react-query";
+import { Plug, Check } from "lucide-react";
+import { integrationsService } from "../../../services/integrations/integrations.service";
+import { PageContainer } from "../../../components/layout/PageContainer";
+import { Section } from "../../../components/shared/Section";
+import { Button } from "../../../components/ui/Button";
+import { Badge } from "../../../components/ui/Badge";
+export function IntegrationsPage(){const {data=[]}=useQuery({queryKey:["integrations"],queryFn:integrationsService.list});return <PageContainer><Section eyebrow="Connections" title="Let BhaAI understand your world."><p className="max-w-2xl text-lg muted">Connect only what you want. Permissions are explicit and can be revoked.</p></Section><div className="grid gap-5 md:grid-cols-2">{data.map(i=><div key={i.id} className="surface p-6"><div className="flex items-start justify-between"><div className="flex gap-4"><div className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-[var(--surface-2)]"><Plug size={19}/></div><div><h3 className="text-lg font-semibold">{i.name}</h3><div className="mt-1 text-xs muted">{i.provider} · Last sync {i.lastSync}</div></div></div><Badge tone={i.connected?"success":"neutral"}>{i.connected?"Connected":"Disconnected"}</Badge></div><div className="mt-6 border-t border-[var(--line)] pt-5"><div className="eyebrow mb-3">Permissions</div>{i.permissions.map(p=><div key={p} className="flex items-center gap-2 py-1.5 text-xs muted"><Check size={13}/>{p}</div>)}</div><Button variant={i.connected?"secondary":"primary"} className="mt-5 w-full">{i.connected?"View permissions":"Connect"}</Button></div>)}</div></PageContainer>;}

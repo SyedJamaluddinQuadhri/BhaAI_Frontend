@@ -1,0 +1,7 @@
+import { useQuery } from "@tanstack/react-query";
+import { deadlinesService } from "../../../services/deadlines/deadlines.service";
+import { PageContainer } from "../../../components/layout/PageContainer";
+import { Section } from "../../../components/shared/Section";
+import { StatusBadge } from "../../../components/shared/StatusBadge";
+import { Badge } from "../../../components/ui/Badge";
+export function DeadlinesPage(){const {data=[]}=useQuery({queryKey:["deadlines"],queryFn:deadlinesService.list});return <PageContainer><Section eyebrow="Deadline center" title="What needs your attention."><p className="max-w-2xl text-lg leading-8 muted">Fixed points in time, separated from the reminders that help you reach them.</p></Section><div className="relative border-l border-[var(--line)]">{data.map((d)=><div key={d.id} className="relative grid gap-3 border-b border-[var(--line)] pb-8 pl-8 pt-2 md:grid-cols-[150px_1fr_auto] md:gap-8"><span className="absolute -left-[5px] top-4 h-2.5 w-2.5 rounded-full bg-[var(--text)]"/><div className="eyebrow">{d.date}</div><div><h3 className="text-xl font-semibold">{d.title}</h3><p className="mt-1 text-sm muted">{d.action} · {d.source}</p></div><div className="flex items-center gap-2"><Badge tone={d.priority==="urgent"?"danger":d.priority==="high"?"warning":"neutral"}>{d.priority}</Badge><StatusBadge status={d.status}/></div></div>)}</div></PageContainer>;}

@@ -1,0 +1,4 @@
+import { Bell, Clock3 } from "lucide-react";
+import { Button } from "../../../components/ui/Button";
+const reminders=[["Insurance renewal","30 Sep · 9:00 AM","Push + Calendar"],["Electricity bill","15 Sep · 9:00 AM","Push"],["Internship application","12 Sep · 6:00 PM","Push + Email"]];
+export function ReminderList(){return <div>{reminders.map(([title,when,channel])=><div key={title} className="flex gap-4 border-b border-[var(--line)] py-6"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface-2)]"><Bell size={17}/></div><div className="flex-1"><div className="font-semibold">{title}</div><div className="mt-1 flex gap-3 text-xs muted"><span className="inline-flex items-center gap-1"><Clock3 size={12}/>{when}</span><span>{channel}</span></div></div><Button variant="ghost">Edit</Button></div>)}</div>;}

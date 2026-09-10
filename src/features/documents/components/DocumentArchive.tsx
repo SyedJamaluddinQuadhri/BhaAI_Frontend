@@ -1,0 +1,5 @@
+import { Link } from "react-router-dom";
+import { ArrowUpRight } from "lucide-react";
+import type { Document } from "../../../types/common";
+import { Badge } from "../../../components/ui/Badge";
+export function DocumentArchive({documents}:{documents:Document[]}){return <div className="space-y-0">{documents.map(d=><Link to={`/documents/${d.id}`} key={d.id} className="group block border-b border-[var(--line)] py-7"><div className="grid gap-4 md:grid-cols-[1fr_180px_160px_auto] md:items-center"><div><div className="eyebrow">{d.category} · {d.type}</div><h3 className="mt-2 text-2xl font-semibold tracking-tight">{d.name}</h3><p className="mt-2 max-w-xl text-sm muted">{d.summary}</p></div><div className="text-sm"><div className="muted">Important date</div><div className="mt-1 font-medium">{d.importantDate}</div></div><div>{d.action&&<Badge tone="accent">{d.action}</Badge>}<div className="mt-2 text-xs muted">{d.location}</div></div><ArrowUpRight size={18} className="opacity-40 transition group-hover:translate-x-1 group-hover:-translate-y-1 group-hover:opacity-100"/></div></Link>)}</div>;}

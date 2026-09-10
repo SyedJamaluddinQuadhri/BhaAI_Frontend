@@ -1,0 +1,8 @@
+import type { Document } from "../types/common";
+
+export const mockDocuments: Document[] = [
+  { id: "doc1", name: "LIC Insurance Policy", category: "Insurance", type: "PDF", importantDate: "03 Oct 2026", expiry: "03 Oct 2026", action: "Renew policy", location: "Documents / Insurance", relatedEmail: "LIC renewal email", relatedTask: "Renew insurance", summary: "Life insurance policy with annual renewal due on 3 October 2026. Premium and policy identifiers are present in the document.", entities: ["LIC", "Policy", "03 Oct 2026"] },
+  { id: "doc2", name: "SBI Electricity Receipt", category: "Bills", type: "PDF", importantDate: "16 Sep 2026", action: "Pay next bill", location: "Documents / Bills", relatedEmail: "SBI bill notification", relatedTask: "Pay electricity bill", summary: "Recent electricity bill receipt. BhaAI detected the next payment date and amount from the associated inbox thread.", entities: ["SBI", "Electricity", "₹1,842"] },
+  { id: "doc3", name: "Internship Application Checklist", category: "Education", type: "PDF", importantDate: "14 Sep 2026", action: "Upload certificate", location: "Documents / Education", relatedEmail: "Campus placement office", relatedTask: "Upload internship certificate", summary: "Application checklist containing required identity, resume and certificate documents.", entities: ["Internship", "Certificate", "14 Sep 2026"] },
+  { id: "doc4", name: "Vehicle Insurance", category: "Vehicle", type: "PDF", importantDate: "21 Nov 2026", expiry: "21 Nov 2026", action: "Review renewal options", location: "Documents / Vehicle", relatedEmail: "Insurance renewal notice", summary: "Vehicle insurance document with renewal date in November 2026.", entities: ["Vehicle", "Insurance", "21 Nov 2026"] }
+];
