@@ -17,6 +17,7 @@ import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { GoogleAuthenticatorGateway } from "../components/GoogleAuthenticatorGateway";
 import { GmailAccessGateway } from "../components/GmailAccessGateway";
+import { BhaAIIcon } from "../../../components/shared/BhaAIIcon";
 
 type SignupStep = "account" | "authenticator" | "gmail" | "complete";
 type LoginStep = "credentials" | "authenticator";
@@ -163,9 +164,7 @@ export function AuthPage() {
           />
           <div className="relative">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[var(--text)] text-[var(--bg)] font-bold">
-                bh
-              </div>
+              <BhaAIIcon size={42} />
               <div className="text-xl font-bold tracking-tight">BhaAI</div>
             </div>
           </div>
@@ -212,9 +211,7 @@ export function AuthPage() {
             {/* Mobile Branding */}
             <div className="mb-8 lg:hidden">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[var(--text)] text-[var(--bg)] font-bold">
-                  bh
-                </div>
+                <BhaAIIcon size={40} />
                 <div className="text-xl font-bold">BhaAI</div>
               </div>
             </div>

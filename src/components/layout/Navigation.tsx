@@ -1,8 +1,9 @@
 import { NavLink } from "react-router-dom";
-import { Home, Bot, Inbox, Clock3, CheckSquare, CalendarDays, FileText, Network, Sparkles, Bell, Shield, Plug, Settings, AlarmClock } from "lucide-react";
+import { Home, Sparkles, Inbox, Clock3, CheckSquare, CalendarDays, FileText, Network, Bell, Shield, Plug, Settings, AlarmClock } from "lucide-react";
+import { BhaAIIcon } from "../shared/BhaAIIcon";
 
 const primary = [
-  ["/", "Home", Home], ["/assistant", "BhaAI", Bot], ["/inbox", "Inbox", Inbox],
+  ["/", "Home", Home], ["/assistant", "BhaAI", Sparkles], ["/inbox", "Inbox", Inbox],
   ["/deadlines", "Deadlines", Clock3], ["/tasks", "Tasks", CheckSquare], ["/calendar", "Calendar", CalendarDays],
   ["/documents", "Documents", FileText], ["/knowledge", "Knowledge", Network], ["/insights", "Insights", Sparkles], ["/reminders", "Reminders", AlarmClock],
 ] as const;
@@ -14,7 +15,13 @@ const utility = [
 
 export function Navigation() {
   return <aside className="hidden w-[230px] shrink-0 border-r border-[var(--line)] px-5 py-7 lg:block">
-    <div className="mb-9 flex items-center gap-3 px-2"><div className="flex h-9 w-9 items-center justify-center rounded-[11px] bg-[var(--text)] text-[var(--bg)] font-bold">K</div><div><div className="font-bold tracking-tight">BhaAI</div><div className="text-[10px] muted">Your life, understood.</div></div></div>
+    <div className="mb-9 flex items-center gap-3 px-2">
+      <BhaAIIcon size={36} />
+      <div>
+        <div className="font-bold tracking-tight text-[var(--text)]">BhaAI</div>
+        <div className="text-[10px] muted">Your life, understood.</div>
+      </div>
+    </div>
     <nav className="space-y-1">{primary.map(([to, label, Icon]) => <NavLink key={to} to={to} className={({isActive}) => `flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm transition ${isActive ? "bg-[var(--surface-2)] font-semibold" : "muted hover:bg-[var(--surface-2)] hover:text-[var(--text)]"}`}><Icon size={17} strokeWidth={1.8}/>{label}</NavLink>)}</nav>
     <div className="my-7 h-px bg-[var(--line)]" />
     <div className="eyebrow px-3 pb-2">System</div>

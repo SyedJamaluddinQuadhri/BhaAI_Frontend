@@ -1,6 +1,17 @@
-const rawBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
-// Strip trailing slash if present
-const baseUrl = rawBaseUrl.replace(/\/+$/, "");
+export function getBaseUrl(): string {
+  try {
+    const custom = localStorage.getItem("bhaai_ec2_api_url");
+    if (custom && custom.trim().length > 0) {
+      return custom.trim().replace(/\/+$/, "");
+    }
+  } catch {
+    // fallback
+  }
+  const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://100.24.52.244:8000/v1";
+  return rawBaseUrl.replace(/\/+$/, "");
+}
+
+const baseUrl = getBaseUrl();
 
 function getAccessToken(): string | null {
   try {
@@ -15,16 +26,25 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   const token = getAccessToken();
   const headers = new Headers(options.headers);
 
+  // Set default Content-Type for non-FormData
   if (!(options.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
+
+  // Set Auth Token if present
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
+  // Set default X-User-Id for multi-tenant FAISS vector index isolation
+  if (!headers.has("X-User-Id")) {
+    const userId = localStorage.getItem("bhaai_user_id") || "user_bhaai_dev";
+    headers.set("X-User-Id", userId);
+  }
+
   // Ensure clean path join with single slash
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  const fullUrl = `${baseUrl}${cleanPath}`;
+  const fullUrl = `${getBaseUrl()}${cleanPath}`;
 
   try {
     const response = await fetch(fullUrl, { ...options, headers });

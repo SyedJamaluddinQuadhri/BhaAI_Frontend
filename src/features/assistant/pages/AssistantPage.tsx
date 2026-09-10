@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Sparkles,
   ArrowUp,
@@ -14,38 +15,70 @@ import {
   ShieldCheck,
   AlertCircle,
   ExternalLink,
+  Mic,
+  MicOff,
+  Database,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { aiService, type AIMessage } from "../../../services/ai/ai.service";
 import { authService } from "../../../services/auth/auth.service";
+import { BhaAIIcon } from "../../../components/shared/BhaAIIcon";
 
 const initialChatMessages: AIMessage[] = [
   {
     id: "welcome",
     role: "assistant",
     content:
-      "Hey Jamal, I’m BhaAI. I’m connected to your Gmail (`jamal.ahmed@gmail.com`), calendar, and document vault.\n\nAsk me anything about your emails, upcoming deadlines, bills, or tasks.",
+      "Hey Jamal, I’m BhaAI. I’m connected to your Gmail (`jamal.ahmed@gmail.com`), calendar, and personal document vault on EC2.\n\nUpload a document or ask me anything about your uploaded files, deadlines, or emails.",
     sources: [
+      { type: "doc", title: "Personal FAISS Index", detail: "user_bhaai_dev" },
       { type: "gmail", title: "Gmail Gateway", detail: "4 emails indexed" },
-      { type: "doc", title: "Vault", detail: "12 documents" },
     ],
     timestamp: "Just now",
   },
 ];
 
 const starterPrompts = [
+  { label: "What skills do I have?", query: "What skills do I have according to my documents?" },
+  { label: "Summarize my resume/notes", query: "Summarize the key experience and projects from my uploaded documents." },
   { label: "Check my connected Gmail inbox", query: "What emails are in my Gmail?" },
   { label: "What is my most urgent deadline?", query: "What is my most urgent deadline?" },
-  { label: "When does my LIC insurance expire?", query: "When does my LIC insurance policy expire?" },
-  { label: "Do I have any pending bills to pay?", query: "Do I have any electricity or other bills to pay?" },
   { label: "What should I focus on today?", query: "What are my priorities today?" },
 ];
 
 export function AssistantPage() {
+  const [searchParams] = useSearchParams();
   const [messages, setMessages] = useState<AIMessage[]>(initialChatMessages);
   const [inputValue, setInputValue] = useState("");
   const [thinking, setThinking] = useState(false);
   const [contextDrawerOpen, setContextDrawerOpen] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState("");
+  const [searchSource, setSearchSource] = useState<"personal" | "email" | "both" | "auto">("personal");
+  const didRunQueryParam = useRef(false);
+
+  const startVoiceInput = () => {
+    setIsListening(true);
+    setVoiceTranscript("");
+    const sample = "What skills do I have according to my uploaded documents?";
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setVoiceTranscript(sample.slice(0, i));
+      if (i >= sample.length) {
+        clearInterval(interval);
+      }
+    }, 45);
+  };
+
+  const handleSendVoice = () => {
+    if (voiceTranscript) {
+      handleSend(voiceTranscript);
+    }
+    setIsListening(false);
+    setVoiceTranscript("");
+  };
 
   const session = authService.getSession();
   const gmailAddress = session?.user?.gmailAddress || "jamal.ahmed@gmail.com";
@@ -57,6 +90,15 @@ export function AssistantPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, thinking]);
+
+  // Read ?q= query param on mount
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q && !didRunQueryParam.current) {
+      didRunQueryParam.current = true;
+      handleSend(q);
+    }
+  }, [searchParams]);
 
   // Send message handler
   const handleSend = async (textToSend?: string) => {
@@ -79,8 +121,7 @@ export function AssistantPage() {
     }
 
     try {
-      await new Promise((r) => setTimeout(r, 650));
-      const response = await aiService.chat(text);
+      const response = await aiService.chat(text, searchSource);
 
       const assistantMsg: AIMessage = {
         id: crypto.randomUUID(),
@@ -97,7 +138,7 @@ export function AssistantPage() {
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: "I had trouble scanning your context. Please try again.",
+          content: "I had trouble retrieving your document chunks from the EC2 backend. Please check connectivity and try again.",
           timestamp: "Just now",
         },
       ]);
@@ -105,6 +146,7 @@ export function AssistantPage() {
       setThinking(false);
     }
   };
+
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -131,9 +173,7 @@ export function AssistantPage() {
         {/* Chatbot Top Bar */}
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--line)] bg-[var(--surface)] px-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[var(--text)] text-[var(--bg)] shadow-sm">
-              <Sparkles size={16} />
-            </div>
+            <BhaAIIcon size={30} />
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold tracking-tight text-[var(--text)]">
@@ -147,11 +187,39 @@ export function AssistantPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Target Source Mode Toggle */}
+            <div className="flex items-center rounded-lg border border-[var(--line)] bg-[var(--surface-2)] p-0.5 text-xs">
+              <button
+                type="button"
+                onClick={() => setSearchSource("personal")}
+                className={`flex items-center gap-1 rounded-md px-2.5 py-1 font-medium transition ${
+                  searchSource === "personal"
+                    ? "bg-[var(--surface)] text-[var(--text)] shadow-sm font-semibold"
+                    : "text-[var(--muted)] hover:text-[var(--text)]"
+                }`}
+              >
+                <FileText size={12} className="text-[var(--accent)]" />
+                <span>Personal FAISS</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSearchSource("auto")}
+                className={`flex items-center gap-1 rounded-md px-2.5 py-1 font-medium transition ${
+                  searchSource === "auto"
+                    ? "bg-[var(--surface)] text-[var(--text)] shadow-sm font-semibold"
+                    : "text-[var(--muted)] hover:text-[var(--text)]"
+                }`}
+              >
+                <Sparkles size={12} className="text-[var(--teal)]" />
+                <span className="hidden sm:inline">All Sources</span>
+              </button>
+            </div>
+
             {/* Live Gmail Gateway status badge */}
-            <div className="hidden sm:flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface-2)] px-3 py-1 text-xs">
+            <div className="hidden lg:flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface-2)] px-3 py-1 text-xs">
               <span className="h-2 w-2 rounded-full bg-[var(--success)] animate-pulse" />
               <Mail size={12} className="text-[var(--accent)]" />
-              <span className="font-medium text-[var(--text)] truncate max-w-[160px]">
+              <span className="font-medium text-[var(--text)] truncate max-w-[140px]">
                 {gmailAddress}
               </span>
             </div>
@@ -189,8 +257,8 @@ export function AssistantPage() {
                 >
                   {/* Assistant Avatar */}
                   {!isUser && (
-                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[var(--text)] text-[var(--bg)] shadow-sm">
-                      <Sparkles size={15} />
+                    <div className="mt-0.5 shrink-0">
+                      <BhaAIIcon size={28} />
                     </div>
                   )}
 
@@ -330,34 +398,100 @@ export function AssistantPage() {
             </div>
 
             {/* Input Container */}
-            <div className="flex items-end gap-2 rounded-[18px] border border-[var(--line)] bg-[var(--bg)] p-2 focus-within:border-[var(--accent)] focus-within:ring-2 focus-within:ring-[var(--accent-soft)] transition">
-              <textarea
-                ref={textareaRef}
-                value={inputValue}
-                onChange={(e) => {
-                  setInputValue(e.target.value);
-                  e.target.style.height = "auto";
-                  e.target.style.height = `${Math.min(e.target.scrollHeight, 140)}px`;
-                }}
-                onKeyDown={handleKeyDown}
-                rows={1}
-                placeholder="Ask BhaAI about your Gmail, deadlines, documents, or tasks…"
-                className="max-h-36 min-h-[38px] flex-1 resize-none bg-transparent px-3 py-2 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
-              />
+            <div className="rounded-[18px] border border-[var(--line)] bg-[var(--bg)] p-2 focus-within:border-[var(--accent)] focus-within:ring-2 focus-within:ring-[var(--accent-soft)] transition">
+              {isListening ? (
+                /* Interactive Voice Audio Waveform */
+                <div className="flex items-center justify-between gap-3 px-3 py-2">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {/* Animated Soundwave Bars */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {[16, 28, 12, 32, 20, 24, 14].map((h, idx) => (
+                        <motion.span
+                          key={idx}
+                          animate={{ height: ["8px", `${h}px`, "8px"] }}
+                          transition={{
+                            repeat: Infinity,
+                            duration: 0.6 + idx * 0.1,
+                            ease: "easeInOut",
+                          }}
+                          className="w-1 rounded-full bg-[var(--accent)] inline-block"
+                        />
+                      ))}
+                    </div>
 
-              <button
-                type="button"
-                onClick={() => handleSend()}
-                disabled={!inputValue.trim() || thinking}
-                aria-label="Send message"
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] transition ${
-                  inputValue.trim() && !thinking
-                    ? "bg-[var(--text)] text-[var(--bg)] hover:opacity-85 shadow-sm"
-                    : "bg-[var(--surface-2)] text-[var(--muted)] cursor-not-allowed"
-                }`}
-              >
-                <ArrowUp size={18} />
-              </button>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--accent)]">
+                        <span className="h-2 w-2 rounded-full bg-[var(--danger)] animate-ping" />
+                        Listening…
+                      </div>
+                      <div className="text-xs text-[var(--text)] font-medium truncate mt-0.5">
+                        {voiceTranscript || "Speak now…"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setIsListening(false)}
+                      className="rounded-[10px] px-2.5 py-1 text-xs text-[var(--muted)] hover:text-[var(--text)]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSendVoice}
+                      className="flex items-center gap-1.5 rounded-[10px] bg-[var(--text)] px-3 py-1.5 text-xs font-semibold text-[var(--bg)] hover:opacity-85 shadow-sm"
+                    >
+                      <span>Send voice</span>
+                      <ArrowUp size={14} />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Standard Text Input */
+                <div className="flex items-end gap-2">
+                  <textarea
+                    ref={textareaRef}
+                    value={inputValue}
+                    onChange={(e) => {
+                      setInputValue(e.target.value);
+                      e.target.style.height = "auto";
+                      e.target.style.height = `${Math.min(e.target.scrollHeight, 140)}px`;
+                    }}
+                    onKeyDown={handleKeyDown}
+                    rows={1}
+                    placeholder="Ask BhaAI about your Gmail, deadlines, documents, or tasks…"
+                    className="max-h-36 min-h-[38px] flex-1 resize-none bg-transparent px-3 py-2 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
+                  />
+
+                  {/* Voice Mic Button */}
+                  <button
+                    type="button"
+                    onClick={startVoiceInput}
+                    title="Voice input"
+                    aria-label="Voice input"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)] transition"
+                  >
+                    <Mic size={18} />
+                  </button>
+
+                  {/* Send Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleSend()}
+                    disabled={!inputValue.trim() || thinking}
+                    aria-label="Send message"
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] transition ${
+                      inputValue.trim() && !thinking
+                        ? "bg-[var(--text)] text-[var(--bg)] hover:opacity-85 shadow-sm"
+                        : "bg-[var(--surface-2)] text-[var(--muted)] cursor-not-allowed"
+                    }`}
+                  >
+                    <ArrowUp size={18} />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Privacy footnote */}

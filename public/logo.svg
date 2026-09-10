@@ -1,4 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="32" fill="#171717"/>
-  <path d="M36 33v62M36 64h24M60 64l30-31M60 64l31 31" fill="none" stroke="#F5F3EE" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <linearGradient id="bhaaiGrad" x1="12" y1="12" x2="116" y2="116" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4D5FD7"/>
+      <stop offset="50%" stop-color="#3A4BC0"/>
+      <stop offset="100%" stop-color="#177C72"/>
+    </linearGradient>
+    <linearGradient id="bhaaiSpark" x1="0" y1="0" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#B4C6FF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background squircle -->
+  <rect width="128" height="128" rx="36" fill="url(#bhaaiGrad)"/>
+
+  <!-- Orbital ring -->
+  <circle cx="64" cy="64" r="42" stroke="#FFFFFF" stroke-width="3" stroke-dasharray="8 6" stroke-opacity="0.5"/>
+
+  <!-- Connected Context Nodes -->
+  <circle cx="36" cy="46" r="6" fill="#FFFFFF"/>
+  <circle cx="92" cy="46" r="6" fill="#FFFFFF"/>
+  <circle cx="64" cy="94" r="6" fill="#FFFFFF"/>
+
+  <!-- Synapse Lines to Core -->
+  <path d="M36 46L64 64M92 46L64 64M64 94L64 64" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-opacity="0.8"/>
+
+  <!-- Core Intelligence Nucleus -->
+  <circle cx="64" cy="64" r="14" fill="#FFFFFF"/>
+
+  <!-- AI Brilliance Diamond Spark -->
+  <path d="M64 24C65 32 72 37 80 38C72 39 65 44 64 52C63 44 56 39 48 38C56 37 63 32 64 24Z" fill="url(#bhaaiSpark)"/>
 </svg>
